@@ -1,0 +1,149 @@
+name: Release
+
+# TODO: Add manual workflow using `workflow_dispatch`
+on:
+  release:
+    types:
+      - created
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Generate Docker Meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          images: nurodev/rust-cross-release
+          tag-sha: true
+          tag-semver: |
+            {{version}}
+            {{major}}.{{minor}}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Setup Docker BuildX
+        uses: docker/setup-buildx-action@v1
+
+      - name: Cache Docker Layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      # NOTE: To add Docker registry support, uncomment below, add the required secret keys and adding the tags commented below
+      #
+      # - name: Login - Docker Hub
+      #   uses: docker/login-action@v1
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GCR_TOKEN }}
+          registry: ghcr.io
+
+      - name: Build & Push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/ppc64le,linux/s390x
+          labels: ${{ steps.docker_meta.outputs.labels }}
+          push: true
+          tags: |
+            ghcr.io/nurodev/rust-cross-release:latest
+            ghcr.io/nurodev/rust-cross-release:${{ github.event.release.tag_name }}
+          # nurodev/rust-cross-release:latest
+          # nurodev/rust-cross-release:${{ github.event.release.tag_name }}
+
+  binary:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: arm-unknown-linux-gnueabihf
+            artifact_name: rust-cross-release
+            asset_name: rust-cross-release-${{ github.event.release.tag_name }}-linux-arm
+            use_cross: true
+          - os: ubuntu-latest
+            target: i686-unknown-linux-gnu
+            artifact_name: rust-cross-release
+            asset_name: rust-cross-release-${{ github.event.release.tag_name }}-linux-x86
+            use_cross: true
+          - os: ubuntu-latest
+            target: i686-unknown-linux-musl
+            artifact_name: rust-cross-release
+            asset_name: rust-cross-release-${{ github.event.release.tag_name }}-linux-musl-x86
+            use_cross: true
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: rust-cross-release
+            asset_name: rust-cross-release-${{ github.event.release.tag_name }}-linux-x86_64
+            use_cross: true
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact_name: rust-cross-release
+            asset_name: rust-cross-release-${{ github.event.release.tag_name }}-linux-musl-x86_64
+            use_cross: true
+
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: rust-cross-release
+            asset_name: rust-cross-release-${{ github.event.release.tag_name }}-macos-x86_64
+
+          # TODO: Add support for more Windows toolchains (i686-pc-windows-gnu, i686-pc-windows-msvc & x86_64-pc-windows-gnu)
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: rust-cross-release.exe
+            asset_name: rust-cross-release-${{ github.event.release.tag_name }}-windows-x86_64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: "stable"
+          override: true
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          use-cross: ${{ matrix.use_cross }}
+          args: --verbose --release --target=${{ matrix.target }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ./target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+      # TODO: Zip only Windows releases, use bash `tar` to archive all *unix assets
+      - name: Archive Release
+        uses: papeloto/action-zip@v1
+        with:
+          files: ./target/${{ matrix.target }}/release/${{ matrix.artifact_name }} ./LICENSE
+          dest: ${{ matrix.asset_name }}.zip
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ matrix.asset_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
