@@ -40,15 +40,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      # NOTE: To add Docker registry support, uncomment below, add the required secret keys and adding the tags commented below
-      #
-      # - name: Login - Docker Hub
-      #   uses: docker/login-action@v1
-      #   with:
-      #     username: ${{ secrets.DOCKER_USERNAME }}
-      #     password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Login - Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Login to GitHub Container Registry
+      - name: Login - GitHub Container Registry
         uses: docker/login-action@v1
         with:
           username: ${{ github.repository_owner }}
@@ -64,10 +62,10 @@ jobs:
           labels: ${{ steps.docker_meta.outputs.labels }}
           push: true
           tags: |
+            nurodev/rust-cross-release:latest
+            nurodev/rust-cross-release:${{ github.event.release.tag_name }}
             ghcr.io/nurodev/rust-cross-release:latest
             ghcr.io/nurodev/rust-cross-release:${{ github.event.release.tag_name }}
-          # nurodev/rust-cross-release:latest
-          # nurodev/rust-cross-release:${{ github.event.release.tag_name }}
 
   binary:
     runs-on: ${{ matrix.os }}
