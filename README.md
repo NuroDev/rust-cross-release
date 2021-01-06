@@ -11,6 +11,8 @@ Simply click the button below to get started:
 
 [![Use this template](https://img.shields.io/badge/use%20this%20template-brightgreen.svg?longCache=true&style=for-the-badge)](https://github.com/nurodev/rust-cross-release/generate)
 
-Once the template has been used and the repository has been generated, there is one step required to complete the setup.
-In order to use the release workflow function, you need to create a repository secret with the name `GCR_TOKEN`.
-GitHub offers documentation on how to do this here: [docs.github.com](https://docs.github.com/en/free-pro-team@latest/actions/reference/encrypted-secrets)
+Once the template has been used and the repository has been generated, there is two steps required to complete the setup.
+In order to use the release workflow function, you need to create mutliple repository secrets. Below will be listed all of the required secrets and how to go about adding them:
+ - `GCR_TOKEN`: [docs.github.com](https://docs.github.com/en/free-pro-team@latest/actions/reference/encrypted-secrets)
+ - `DOCKER_USERNAME`: Your Docker Hub Username
+ - `DOCKER_TOKEN`: [Docker Hub Access Token](https://www.docker.com/blog/docker-github-actions/)
