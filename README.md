@@ -3,6 +3,7 @@
 A simple project template for a fully automated cross-platform & cross-architecture CD structure
 
 [![License](https://img.shields.io/badge/-MIT-f56565.svg?longCache=true&style=for-the-badge)](https://github.com/nurodev/rust-cross-release/blob/main/LICENSE)
+[![Version](https://img.shields.io/github/v/release/nurodev/rust-cross-release?label=%20&style=for-the-badge)](https://github.com/NuroDev/rust-cross-release/releases)
 [![Build](https://img.shields.io/github/workflow/status/nurodev/rust-cross-release/Build?label=%20&logo=github&logoColor=white&style=for-the-badge)](https://github.com/NuroDev/rust-cross-release/actions?query=workflow%3Abuild) 
 
 ## 🦄 Usage
